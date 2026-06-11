@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finance Analytics Dashboard 2022–2025</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0B1120;--surface:#131C2E;--card:#1A2540;--border:#243050;
+    --blue:#4A9EFF;--green:#3DDC84;--amber:#FFB547;--red:#FF5C5C;--teal:#00D4B4;--purple:#B57AFF;
+    --text:#E8EDF5;--muted:#7A8BAA;--sidebar:220px;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;display:flex;height:100vh;overflow:hidden}
+  
+  /* SIDEBAR */
+  #sidebar{width:var(--sidebar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;flex-shrink:0}
+  .brand{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+  .brand h2{font-size:13px;font-weight:700;color:var(--blue);letter-spacing:1.5px;text-transform:uppercase}
+  .brand p{font-size:11px;color:var(--muted);margin-top:3px}
+  .nav-section{padding:12px 12px 0;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;font-size:13px;color:var(--muted);border-left:3px solid transparent;transition:all .15s}
+  .nav-item:hover{color:var(--text);background:rgba(74,158,255,.08)}
+  .nav-item.active{color:var(--blue);background:rgba(74,158,255,.12);border-left-color:var(--blue);font-weight:600}
+  .nav-icon{font-size:15px;width:18px;text-align:center}
+  
+  /* MAIN */
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  
+  /* TOPBAR */
+  #topbar{padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+  #topbar h1{font-size:16px;font-weight:600;flex:1}
+  .filter-group{display:flex;align-items:center;gap:6px}
+  .filter-label{font-size:11px;color:var(--muted);margin-right:2px}
+  .year-pill{padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s}
+  .year-pill:hover{border-color:var(--blue);color:var(--blue)}
+  .year-pill.active{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+  select.filter-sel{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+  .reset-btn{padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer}
+  .reset-btn:hover{border-color:var(--red);color:var(--red)}
+  
+  /* CONTENT */
+  #content{flex:1;overflow-y:auto;padding:20px 24px}
+  .tab-page{display:none}
+  .tab-page.active{display:block}
+  
+  /* GRID */
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+  .grid-21{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
+  .grid-12{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:16px}
+  
+  /* KPI CARD */
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-color,var(--blue))}
+  .kpi-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+  .kpi-value{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+  .kpi-sub{font-size:12px;margin-top:6px;display:flex;align-items:center;gap:5px}
+  .kpi-badge{padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}
+  .badge-up{background:rgba(61,220,132,.18);color:var(--green)}
+  .badge-down{background:rgba(255,92,92,.18);color:var(--red)}
+  .badge-neutral{background:rgba(74,158,255,.18);color:var(--blue)}
+  
+  /* CHART CARD */
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+  .chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .chart-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+  .chart-wrap{position:relative}
+  
+  /* TABLE */
+  .data-table{width:100%;border-collapse:collapse;font-size:12px}
+  .data-table th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);white-space:nowrap}
+  .data-table td{padding:8px 12px;border-bottom:1px solid rgba(36,48,80,.5)}
+  .data-table tr:last-child td{border-bottom:none}
+  .data-table tr:hover td{background:rgba(74,158,255,.04)}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .pos{color:var(--green)}
+  .neg{color:var(--red)}
+  .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+  
+  /* HEATMAP */
+  .heatmap-wrap{overflow-x:auto}
+  .heatmap{border-collapse:collapse;font-size:11px;width:100%}
+  .heatmap th{padding:5px 8px;color:var(--muted);font-weight:500;text-align:center;white-space:nowrap}
+  .heatmap th:first-child{text-align:left}
+  .heatmap td{padding:4px 8px;text-align:center;border-radius:3px;min-width:52px;font-size:11px;font-variant-numeric:tabular-nums}
+  .heatmap td:first-child{text-align:left;font-weight:500;padding-right:12px;white-space:nowrap}
+  
+  /* WATERFALL */
+  .wf-bar{display:flex;align-items:flex-end;gap:2px;height:140px;margin-top:8px}
+  .wf-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .wf-col-label{font-size:10px;color:var(--muted);text-align:center;line-height:1.2;height:28px;display:flex;align-items:flex-end}
+  .wf-col-val{font-size:10px;font-weight:600;font-variant-numeric:tabular-nums}
+  .wf-rect{width:100%;border-radius:3px 3px 0 0;min-height:4px}
+  
+  /* SCROLLBAR */
+  #content::-webkit-scrollbar{width:6px}
+  #content::-webkit-scrollbar-track{background:transparent}
+  #content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  
+  /* SECTION HEADER */
+  .section-header{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:4px;border-bottom:1px solid var(--border);padding-bottom:6px}
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div class="brand">
+    <h2>FinanceIQ</h2>
+    <p>Corporate Analytics 2022–2025</p>
+  </div>
+  <div class="nav-section" style="margin-top:12px">Overview</div>
+  <div class="nav-item active" onclick="showTab('exec',this)"><span class="nav-icon">📊</span>Executive Summary</div>
+  <div class="nav-section" style="margin-top:8px">Financials</div>
+  <div class="nav-item" onclick="showTab('revenue',this)"><span class="nav-icon">💰</span>Revenue Analysis</div>
+  <div class="nav-item" onclick="showTab('profit',this)"><span class="nav-icon">📈</span>Profitability</div>
+  <div class="nav-item" onclick="showTab('expenses',this)"><span class="nav-icon">🏦</span>Expenses</div>
+  <div class="nav-item" onclick="showTab('cashflow',this)"><span class="nav-icon">💵</span>Cash Flow</div>
+  <div class="nav-item" onclick="showTab('budget',this)"><span class="nav-icon">🎯</span>Budget vs Actual</div>
+  <div style="flex:1"></div>
+  <div style="padding:16px;border-top:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--muted)">6,005 transactions &bull; 4 years</div>
+    <div style="font-size:10px;color:var(--muted)">5 regions &bull; 5 categories</div>
+  </div>
+</nav>
+
+<div id="main">
+  <div id="topbar">
+    <h1 id="page-title">Executive Summary</h1>
+    <div class="filter-group">
+      <span class="filter-label">Year:</span>
+      <button class="year-pill active" onclick="setYear('all',this)">All</button>
+      <button class="year-pill" onclick="setYear(2022,this)">2022</button>
+      <button class="year-pill" onclick="setYear(2023,this)">2023</button>
+      <button class="year-pill" onclick="setYear(2024,this)">2024</button>
+      <button class="year-pill" onclick="setYear(2025,this)">2025</button>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Region:</span>
+      <select class="filter-sel" id="sel-region" onchange="applyFilters()">
+        <option value="all">All Regions</option>
+        <option>North America</option>
+        <option>Europe</option>
+        <option>Asia Pacific</option>
+        <option>Latin America</option>
+        <option>Middle East &amp; Africa</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Category:</span>
+      <select class="filter-sel" id="sel-cat" onchange="applyFilters()">
+        <option value="all">All Categories</option>
+        <option>Software</option>
+        <option>Hardware</option>
+        <option>Professional Services</option>
+        <option>Maintenance &amp; Support</option>
+        <option>Cloud Solutions</option>
+      </select>
+    </div>
+    <button class="reset-btn" onclick="resetFilters()">Reset</button>
+  </div>
+
+  <div id="content">
+    <!-- TAB 1: EXECUTIVE SUMMARY -->
+    <div class="tab-page active" id="tab-exec">
+      <div class="section-header">Key Performance Indicators</div>
+      <div class="grid-4" id="kpi-cards"></div>
+      <div class="grid-21">
+        <div class="chart-card">
+          <div class="chart-title">Revenue Trend by Month</div>
+          <div class="chart-sub">Monthly revenue across all years — hover for detail</div>
+          <div class="chart-wrap"><canvas id="c-rev-trend" height="160"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Revenue by Category</div>
+          <div class="chart-sub">Share of total revenue by product line</div>
+          <div class="chart-wrap"><canvas id="c-cat-donut" height="160"></canvas></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Revenue by Region</div>
+          <div class="chart-sub">Sorted by total revenue across selected period</div>
+          <div class="chart-wrap"><canvas id="c-region-bar" height="160"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Annual Revenue vs Budget</div>
+          <div class="chart-sub">Actual vs budgeted revenue by year</div>
+          <div class="chart-wrap"><canvas id="c-rev-bud" height="160"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: REVENUE ANALYSIS -->
+    <div class="tab-page" id="tab-revenue">
+      <div class="section-header">Revenue Deep Dive</div>
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Revenue by Region &amp; Year</div>
+          <div class="chart-sub">Grouped bar — each cluster is one region</div>
+          <div class="chart-wrap"><canvas id="c-rev-region-yr" height="200"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Revenue by Category &amp; Year</div>
+          <div class="chart-sub">Stacked to show portfolio mix shift</div>
+          <div class="chart-wrap"><canvas id="c-rev-cat-yr" height="200"></canvas></div>
+        </div>
+      </div>
+      <div class="grid-21">
+        <div class="chart-card">
+          <div class="chart-title">Monthly Revenue — All Years Overlaid</div>
+          <div class="chart-sub">Compare seasonality across 2022–2025</div>
+          <div class="chart-wrap"><canvas id="c-rev-seasonal" height="170"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">YoY Growth by Year</div>
+          <div class="chart-sub">Revenue growth rate year over year</div>
+          <div class="chart-wrap"><canvas id="c-yoy" height="170"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title">Revenue by Region — Detailed Table</div>
+        <div class="chart-sub">Breakdown with YoY comparison</div>
+        <table class="data-table" id="t-rev-region"></table>
+      </div>
+    </div>
+
+    <!-- TAB 3: PROFITABILITY -->
+    <div class="tab-page" id="tab-profit">
+      <div class="section-header">Profitability Analysis</div>
+      <div class="grid-4" id="profit-kpis"></div>
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Gross vs Net Margin % — Trend</div>
+          <div class="chart-sub">Monthly margin lines for selected period</div>
+          <div class="chart-wrap"><canvas id="c-margins" height="190"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">P&amp;L Waterfall — Annual</div>
+          <div class="chart-sub">Revenue → COGS → Gross Profit → OPEX → Net Income</div>
+          <div id="c-waterfall" style="min-height:220px"></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Gross Profit by Category</div>
+          <div class="chart-sub">Contribution to gross profit by product line</div>
+          <div class="chart-wrap"><canvas id="c-gp-cat" height="180"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Profitability Summary Table</div>
+          <div class="chart-sub">Annual P&amp;L breakdown</div>
+          <table class="data-table" id="t-pl"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: EXPENSES -->
+    <div class="tab-page" id="tab-expenses">
+      <div class="section-header">OPEX Breakdown</div>
+      <div class="grid-4" id="opex-kpis"></div>
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-title">OPEX by Department</div>
+          <div class="chart-sub">Annual spending per department</div>
+          <div class="chart-wrap"><canvas id="c-opex-dept" height="200"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">OPEX by Expense Type</div>
+          <div class="chart-sub">Composition across all departments</div>
+          <div class="chart-wrap"><canvas id="c-opex-etype" height="200"></canvas></div>
+        </div>
+      </div>
+      <div class="grid-21">
+        <div class="chart-card">
+          <div class="chart-title">OPEX Trend by Department</div>
+          <div class="chart-sub">Year-over-year spend growth per dept</div>
+          <div class="chart-wrap"><canvas id="c-opex-trend" height="170"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Expense Type Mix</div>
+          <div class="chart-sub">Donut breakdown for selected period</div>
+          <div class="chart-wrap"><canvas id="c-opex-donut" height="170"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title">Department OPEX Detail</div>
+        <div class="chart-sub">With YoY change and % of total</div>
+        <table class="data-table" id="t-opex"></table>
+      </div>
+    </div>
+
+    <!-- TAB 5: CASH FLOW -->
+    <div class="tab-page" id="tab-cashflow">
+      <div class="section-header">Cash Flow Statement</div>
+      <div class="grid-4" id="cf-kpis"></div>
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Cash Flow by Type — Quarterly</div>
+          <div class="chart-sub">Operating, Investing, and Financing activities</div>
+          <div class="chart-wrap"><canvas id="c-cf-bar" height="200"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Net Cash Flow Trend</div>
+          <div class="chart-sub">Quarterly net position across all years</div>
+          <div class="chart-wrap"><canvas id="c-cf-net" height="200"></canvas></div>
+        </div>
+      </div>
+      <div class="grid-21">
+        <div class="chart-card">
+          <div class="chart-title">Annual Cash Flow Mix</div>
+          <div class="chart-sub">Operating vs Investing vs Financing by year</div>
+          <div class="chart-wrap"><canvas id="c-cf-annual" height="170"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">FCF Analysis</div>
+          <div class="chart-sub">Free Cash Flow = Operating + Investing</div>
+          <div class="chart-wrap"><canvas id="c-fcf" height="170"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title">Cash Flow Detail Table</div>
+        <table class="data-table" id="t-cf"></table>
+      </div>
+    </div>
+
+    <!-- TAB 6: BUDGET VS ACTUAL -->
+    <div class="tab-page" id="tab-budget">
+      <div class="section-header">Budget vs Actual Performance</div>
+      <div class="grid-4" id="bva-kpis"></div>
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Actual vs Budget — Monthly</div>
+          <div class="chart-sub">Monthly comparison for selected year</div>
+          <div class="chart-wrap"><canvas id="c-bva-monthly" height="190"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Budget Variance % by Region</div>
+          <div class="chart-sub">How much each region beat or missed plan</div>
+          <div class="chart-wrap"><canvas id="c-bva-region" height="190"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title">Budget Attainment Heatmap</div>
+        <div class="chart-sub">Variance % by Region × Month — green = beat budget, red = missed</div>
+        <div class="heatmap-wrap"><table class="heatmap" id="t-heatmap"></table></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title">Budget vs Actual Detail</div>
+        <table class="data-table" id="t-bva"></table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+const DATA = {"kpi":[{"Year":2022,"Revenue":132790447.0,"COGS":40177459.0,"GrossProfit":92612988.0,"OPEX":41350877.0,"Budget":133883333.0,"OperatingCF":28433258.0,"InvestingCF":-13092561.0,"FinancingCF":-8721362.0,"NetCF":6619335.0,"NetIncome":51262111.0,"GrossMarginPct":70.0,"NetMarginPct":39.0,"BudgetVarPct":-1.0},{"Year":2023,"Revenue":144033751.0,"COGS":43680969.0,"GrossProfit":100352782.0,"OPEX":48216917.0,"Budget":145932833.0,"OperatingCF":32631670.0,"InvestingCF":-14637701.0,"FinancingCF":-8859788.0,"NetCF":9134181.0,"NetIncome":52135865.0,"GrossMarginPct":70.0,"NetMarginPct":36.0,"BudgetVarPct":-1.0},{"Year":2024,"Revenue":162600286.0,"COGS":49345009.0,"GrossProfit":113255277.0,"OPEX":54636028.0,"Budget":149949333.0,"OperatingCF":39977467.0,"InvestingCF":-19103346.0,"FinancingCF":-11119740.0,"NetCF":9754381.0,"NetIncome":58619249.0,"GrossMarginPct":70.0,"NetMarginPct":36.0,"BudgetVarPct":8.0},{"Year":2025,"Revenue":176777915.0,"COGS":53684821.0,"GrossProfit":123093094.0,"OPEX":61329803.0,"Budget":147271667.0,"OperatingCF":45315724.0,"InvestingCF":-21974788.0,"FinancingCF":-14422321.0,"NetCF":8918615.0,"NetIncome":61763291.0,"GrossMarginPct":70.0,"NetMarginPct":35.0,"BudgetVarPct":20.0}],"rev_ym":[{"Year":2022,"Month":1,"Revenue":8713631.0},{"Year":2022,"Month":2,"Revenue":9302090.0},{"Year":2022,"Month":3,"Revenue":11135631.0},{"Year":2022,"Month":4,"Revenue":9995303.0},{"Year":2022,"Month":5,"Revenue":10370622.0},{"Year":2022,"Month":6,"Revenue":11627299.0},{"Year":2022,"Month":7,"Revenue":9523346.0},{"Year":2022,"Month":8,"Revenue":9716414.0},{"Year":2022,"Month":9,"Revenue":12213768.0},{"Year":2022,"Month":10,"Revenue":12188573.0},{"Year":2022,"Month":11,"Revenue":12708206.0},{"Year":2022,"Month":12,"Revenue":15295564.0},{"Year":2023,"Month":1,"Revenue":9350639.0},{"Year":2023,"Month":2,"Revenue":10157010.0},{"Year":2023,"Month":3,"Revenue":11770086.0},{"Year":2023,"Month":4,"Revenue":11262577.0},{"Year":2023,"Month":5,"Revenue":11100046.0},{"Year":2023,"Month":6,"Revenue":12153620.0},{"Year":2023,"Month":7,"Revenue":10099351.0},{"Year":2023,"Month":8,"Revenue":10784414.0},{"Year":2023,"Month":9,"Revenue":14137133.0},{"Year":2023,"Month":10,"Revenue":12739628.0},{"Year":2023,"Month":11,"Revenue":14072182.0},{"Year":2023,"Month":12,"Revenue":16407064.0},{"Year":2024,"Month":1,"Revenue":10261718.0},{"Year":2024,"Month":2,"Revenue":10755910.0},{"Year":2024,"Month":3,"Revenue":13315630.0},{"Year":2024,"Month":4,"Revenue":12638242.0},{"Year":2024,"Month":5,"Revenue":12783414.0},{"Year":2024,"Month":6,"Revenue":14395567.0},{"Year":2024,"Month":7,"Revenue":11735596.0},{"Year":2024,"Month":8,"Revenue":12160540.0},{"Year":2024,"Month":9,"Revenue":15062220.0},{"Year":2024,"Month":10,"Revenue":15003523.0},{"Year":2024,"Month":11,"Revenue":15372705.0},{"Year":2024,"Month":12,"Revenue":19115223.0},{"Year":2025,"Month":1,"Revenue":11107281.0},{"Year":2025,"Month":2,"Revenue":11815358.0},{"Year":2025,"Month":3,"Revenue":15465057.0},{"Year":2025,"Month":4,"Revenue":12998146.0},{"Year":2025,"Month":5,"Revenue":13616423.0},{"Year":2025,"Month":6,"Revenue":15405339.0},{"Year":2025,"Month":7,"Revenue":12128645.0},{"Year":2025,"Month":8,"Revenue":13532750.0},{"Year":2025,"Month":9,"Revenue":16610997.0},{"Year":2025,"Month":10,"Revenue":15875560.0},{"Year":2025,"Month":11,"Revenue":17261258.0},{"Year":2025,"Month":12,"Revenue":20961102.0}],"rev_region":[{"Year":2022,"Region":"Asia Pacific","Revenue":26648448.0},{"Year":2022,"Region":"Europe","Revenue":34354406.0},{"Year":2022,"Region":"Latin America","Revenue":10731575.0},{"Year":2022,"Region":"Middle East & Africa","Revenue":8802337.0},{"Year":2022,"Region":"North America","Revenue":52253681.0},{"Year":2023,"Region":"Asia Pacific","Revenue":28953364.0},{"Year":2023,"Region":"Europe","Revenue":36301483.0},{"Year":2023,"Region":"Latin America","Revenue":11494435.0},{"Year":2023,"Region":"Middle East & Africa","Revenue":9857625.0},{"Year":2023,"Region":"North America","Revenue":57426843.0},{"Year":2024,"Region":"Asia Pacific","Revenue":32896197.0},{"Year":2024,"Region":"Europe","Revenue":40997365.0},{"Year":2024,"Region":"Latin America","Revenue":13263615.0},{"Year":2024,"Region":"Middle East & Africa","Revenue":10830614.0},{"Year":2024,"Region":"North America","Revenue":64612496.0},{"Year":2025,"Region":"Asia Pacific","Revenue":36502366.0},{"Year":2025,"Region":"Europe","Revenue":43633698.0},{"Year":2025,"Region":"Latin America","Revenue":13788898.0},{"Year":2025,"Region":"Middle East & Africa","Revenue":12064818.0},{"Year":2025,"Region":"North America","Revenue":70788136.0}],"rev_cat":[{"Year":2022,"Category":"Cloud Solutions","Revenue":33096378.0},{"Year":2022,"Category":"Hardware","Revenue":24075107.0},{"Year":2022,"Category":"Maintenance & Support","Revenue":13327736.0},{"Year":2022,"Category":"Professional Services","Revenue":20200602.0},{"Year":2022,"Category":"Software","Revenue":42090624.0},{"Year":2023,"Category":"Cloud Solutions","Revenue":35767775.0},{"Year":2023,"Category":"Hardware","Revenue":27338780.0},{"Year":2023,"Category":"Maintenance & Support","Revenue":14517454.0},{"Year":2023,"Category":"Professional Services","Revenue":21149134.0},{"Year":2023,"Category":"Software","Revenue":45260608.0},{"Year":2024,"Category":"Cloud Solutions","Revenue":40561287.0},{"Year":2024,"Category":"Hardware","Revenue":29851830.0},{"Year":2024,"Category":"Maintenance & Support","Revenue":16474286.0},{"Year":2024,"Category":"Professional Services","Revenue":24258094.0},{"Year":2024,"Category":"Software","Revenue":51454790.0},{"Year":2025,"Category":"Cloud Solutions","Revenue":44099733.0},{"Year":2025,"Category":"Hardware","Revenue":32903841.0},{"Year":2025,"Category":"Maintenance & Support","Revenue":18175968.0},{"Year":2025,"Category":"Professional Services","Revenue":26331201.0},{"Year":2025,"Category":"Software","Revenue":55267172.0}],"opex_dept":[{"Year":2022,"Department":"Engineering","Amount":11266607.0},{"Year":2022,"Department":"Finance","Amount":2132631.0},{"Year":2022,"Department":"HR","Amount":1779623.0},{"Year":2022,"Department":"Marketing","Amount":4783402.0},{"Year":2022,"Department":"Operations","Amount":5620428.0},{"Year":2022,"Department":"R&D","Amount":7579171.0},{"Year":2022,"Department":"Sales","Amount":8189016.0},{"Year":2023,"Department":"Engineering","Amount":13125952.0},{"Year":2023,"Department":"Finance","Amount":2383629.0},{"Year":2023,"Department":"HR","Amount":2062348.0},{"Year":2023,"Department":"Marketing","Amount":5513021.0},{"Year":2023,"Department":"Operations","Amount":6207549.0},{"Year":2023,"Department":"R&D","Amount":9443424.0},{"Year":2023,"Department":"Sales","Amount":9480996.0},{"Year":2024,"Department":"Engineering","Amount":14784242.0},{"Year":2024,"Department":"Finance","Amount":2593177.0},{"Year":2024,"Department":"HR","Amount":2196603.0},{"Year":2024,"Department":"Marketing","Amount":6487643.0},{"Year":2024,"Department":"Operations","Amount":6584723.0},{"Year":2024,"Department":"R&D","Amount":11783208.0},{"Year":2024,"Department":"Sales","Amount":10206432.0},{"Year":2025,"Department":"Engineering","Amount":16688736.0},{"Year":2025,"Department":"Finance","Amount":2880675.0},{"Year":2025,"Department":"HR","Amount":2409859.0},{"Year":2025,"Department":"Marketing","Amount":7419205.0},{"Year":2025,"Department":"Operations","Amount":6796972.0},{"Year":2025,"Department":"R&D","Amount":13915726.0},{"Year":2025,"Department":"Sales","Amount":11218629.0}],"opex_etype":[{"Year":2022,"ExpenseType":"Depreciation","Amount":2483345.0},{"Year":2022,"ExpenseType":"Facilities","Amount":2881442.0},{"Year":2022,"ExpenseType":"Marketing Programs","Amount":4131842.0},{"Year":2022,"ExpenseType":"Other","Amount":2080163.0},{"Year":2022,"ExpenseType":"Professional Fees","Amount":2495050.0},{"Year":2022,"ExpenseType":"Salaries & Benefits","Amount":21486988.0},{"Year":2022,"ExpenseType":"Software & Licenses","Amount":3725061.0},{"Year":2022,"ExpenseType":"Travel & Entertainment","Amount":2066985.0},{"Year":2023,"ExpenseType":"Depreciation","Amount":2867976.0},{"Year":2023,"ExpenseType":"Facilities","Amount":3366014.0},{"Year":2023,"ExpenseType":"Marketing Programs","Amount":4815252.0},{"Year":2023,"ExpenseType":"Other","Amount":2416481.0},{"Year":2023,"ExpenseType":"Professional Fees","Amount":2888995.0},{"Year":2023,"ExpenseType":"Salaries & Benefits","Amount":25063770.0},{"Year":2023,"ExpenseType":"Software & Licenses","Amount":4402845.0},{"Year":2023,"ExpenseType":"Travel & Entertainment","Amount":2395583.0},{"Year":2024,"ExpenseType":"Depreciation","Amount":3268817.0},{"Year":2024,"ExpenseType":"Facilities","Amount":3794477.0},{"Year":2024,"ExpenseType":"Marketing Programs","Amount":5446264.0},{"Year":2024,"ExpenseType":"Other","Amount":2715693.0},{"Year":2024,"ExpenseType":"Professional Fees","Amount":3284751.0},{"Year":2024,"ExpenseType":"Salaries & Benefits","Amount":28479083.0},{"Year":2024,"ExpenseType":"Software & Licenses","Amount":4917524.0},{"Year":2024,"ExpenseType":"Travel & Entertainment","Amount":2729421.0},{"Year":2025,"ExpenseType":"Depreciation","Amount":3664654.0},{"Year":2025,"ExpenseType":"Facilities","Amount":4286030.0},{"Year":2025,"ExpenseType":"Marketing Programs","Amount":6170192.0},{"Year":2025,"ExpenseType":"Other","Amount":3085034.0},{"Year":2025,"ExpenseType":"Professional Fees","Amount":3651997.0},{"Year":2025,"ExpenseType":"Salaries & Benefits","Amount":31889331.0},{"Year":2025,"ExpenseType":"Software & Licenses","Amount":5499155.0},{"Year":2025,"ExpenseType":"Travel & Entertainment","Amount":3083410.0}],"bva_ym":[{"Year":2022,"Month":1,"Revenue":8713631.0,"Budget":8540833.0,"VarPct":2.0},{"Year":2022,"Month":2,"Revenue":9302090.0,"Budget":9002500.0,"VarPct":3.3},{"Year":2022,"Month":3,"Revenue":11135631.0,"Budget":11080000.0,"VarPct":0.5},{"Year":2022,"Month":4,"Revenue":9995303.0,"Budget":10272083.0,"VarPct":-2.7},{"Year":2022,"Month":5,"Revenue":10370622.0,"Budget":10618333.0,"VarPct":-2.3},{"Year":2022,"Month":6,"Revenue":11627299.0,"Budget":11657083.0,"VarPct":-0.3},{"Year":2022,"Month":7,"Revenue":9523346.0,"Budget":9695000.0,"VarPct":-1.8},{"Year":2022,"Month":8,"Revenue":9716414.0,"Budget":10041250.0,"VarPct":-3.2},{"Year":2022,"Month":9,"Revenue":12213768.0,"Budget":12465000.0,"VarPct":-2.0},{"Year":2022,"Month":10,"Revenue":12188573.0,"Budget":12118750.0,"VarPct":0.6},{"Year":2022,"Month":11,"Revenue":12708206.0,"Budget":12926667.0,"VarPct":-1.7},{"Year":2022,"Month":12,"Revenue":15295564.0,"Budget":15465833.0,"VarPct":-1.1},{"Year":2023,"Month":1,"Revenue":9350639.0,"Budget":9309508.0,"VarPct":0.4},{"Year":2023,"Month":2,"Revenue":10157010.0,"Budget":9812725.0,"VarPct":3.5},{"Year":2023,"Month":3,"Revenue":11770086.0,"Budget":12077200.0,"VarPct":-2.5},{"Year":2023,"Month":4,"Revenue":11262577.0,"Budget":11196571.0,"VarPct":0.6},{"Year":2023,"Month":5,"Revenue":11100046.0,"Budget":11573983.0,"VarPct":-4.1},{"Year":2023,"Month":6,"Revenue":12153620.0,"Budget":12706221.0,"VarPct":-4.3},{"Year":2023,"Month":7,"Revenue":10099351.0,"Budget":10567550.0,"VarPct":-4.4},{"Year":2023,"Month":8,"Revenue":10784414.0,"Budget":10944962.0,"VarPct":-1.5},{"Year":2023,"Month":9,"Revenue":14137133.0,"Budget":13586850.0,"VarPct":4.1},{"Year":2023,"Month":10,"Revenue":12739628.0,"Budget":13209438.0,"VarPct":-3.6},{"Year":2023,"Month":11,"Revenue":14072182.0,"Budget":14090067.0,"VarPct":-0.1},{"Year":2023,"Month":12,"Revenue":16407064.0,"Budget":16857758.0,"VarPct":-2.7},{"Year":2024,"Month":1,"Revenue":10261718.0,"Budget":9565733.0,"VarPct":7.3},{"Year":2024,"Month":2,"Revenue":10755910.0,"Budget":10082800.0,"VarPct":6.7},{"Year":2024,"Month":3,"Revenue":13315630.0,"Budget":12409600.0,"VarPct":7.3},{"Year":2024,"Month":4,"Revenue":12638242.0,"Budget":11504733.0,"VarPct":9.9},{"Year":2024,"Month":5,"Revenue":12783414.0,"Budget":11892533.0,"VarPct":7.5},{"Year":2024,"Month":6,"Revenue":14395567.0,"Budget":13055933.0,"VarPct":10.3},{"Year":2024,"Month":7,"Revenue":11735596.0,"Budget":10858400.0,"VarPct":8.1},{"Year":2024,"Month":8,"Revenue":12160540.0,"Budget":11246200.0,"VarPct":8.1},{"Year":2024,"Month":9,"Revenue":15062220.0,"Budget":13960800.0,"VarPct":7.9},{"Year":2024,"Month":10,"Revenue":15003523.0,"Budget":13573000.0,"VarPct":10.5},{"Year":2024,"Month":11,"Revenue":15372705.0,"Budget":14477867.0,"VarPct":6.2},{"Year":2024,"Month":12,"Revenue":19115223.0,"Budget":17321733.0,"VarPct":10.4},{"Year":2025,"Month":1,"Revenue":11107281.0,"Budget":9394917.0,"VarPct":18.2},{"Year":2025,"Month":2,"Revenue":11815358.0,"Budget":9902750.0,"VarPct":19.3},{"Year":2025,"Month":3,"Revenue":15465057.0,"Budget":12188000.0,"VarPct":26.9},{"Year":2025,"Month":4,"Revenue":12998146.0,"Budget":11299292.0,"VarPct":15.0},{"Year":2025,"Month":5,"Revenue":13616423.0,"Budget":11680167.0,"VarPct":16.6},{"Year":2025,"Month":6,"Revenue":15405339.0,"Budget":12822792.0,"VarPct":20.1},{"Year":2025,"Month":7,"Revenue":12128645.0,"Budget":10664500.0,"VarPct":13.7},{"Year":2025,"Month":8,"Revenue":13532750.0,"Budget":11045375.0,"VarPct":22.5},{"Year":2025,"Month":9,"Revenue":16610997.0,"Budget":13711500.0,"VarPct":21.1},{"Year":2025,"Month":10,"Revenue":15875560.0,"Budget":13330625.0,"VarPct":19.1},{"Year":2025,"Month":11,"Revenue":17261258.0,"Budget":14219333.0,"VarPct":21.4},{"Year":2025,"Month":12,"Revenue":20961102.0,"Budget":17012417.0,"VarPct":23.2}],"bva_region":[{"Year":2022,"Region":"Asia Pacific","Revenue":26648448.0,"Budget":26970000.0,"VarPct":-1.2},{"Year":2022,"Region":"Europe","Revenue":34354406.0,"Budget":33833333.0,"VarPct":1.5},{"Year":2022,"Region":"Latin America","Revenue":10731575.0,"Budget":10826667.0,"VarPct":-0.9},{"Year":2022,"Region":"Middle East & Africa","Revenue":8802337.0,"Budget":8990000.0,"VarPct":-2.1},{"Year":2022,"Region":"North America","Revenue":52253681.0,"Budget":53263333.0,"VarPct":-1.9},{"Year":2023,"Region":"Asia Pacific","Revenue":28953364.0,"Budget":29397300.0,"VarPct":-1.5},{"Year":2023,"Region":"Europe","Revenue":36301483.0,"Budget":36878333.0,"VarPct":-1.6},{"Year":2023,"Region":"Latin America","Revenue":11494435.0,"Budget":11801067.0,"VarPct":-2.6},{"Year":2023,"Region":"Middle East & Africa","Revenue":9857625.0,"Budget":9799100.0,"VarPct":0.6},{"Year":2023,"Region":"North America","Revenue":57426843.0,"Budget":58057033.0,"VarPct":-1.1},{"Year":2024,"Region":"Asia Pacific","Revenue":32896197.0,"Budget":30206400.0,"VarPct":8.9},{"Year":2024,"Region":"Europe","Revenue":40997365.0,"Budget":37893333.0,"VarPct":8.2},{"Year":2024,"Region":"Latin America","Revenue":13263615.0,"Budget":12125867.0,"VarPct":9.4},{"Year":2024,"Region":"Middle East & Africa","Revenue":10830614.0,"Budget":10068800.0,"VarPct":7.6},{"Year":2024,"Region":"North America","Revenue":64612496.0,"Budget":59654933.0,"VarPct":8.3},{"Year":2025,"Region":"Asia Pacific","Revenue":36502366.0,"Budget":29667000.0,"VarPct":23.0},{"Year":2025,"Region":"Europe","Revenue":43633698.0,"Budget":37216667.0,"VarPct":17.2},{"Year":2025,"Region":"Latin America","Revenue":13788898.0,"Budget":11909333.0,"VarPct":15.8},{"Year":2025,"Region":"Middle East & Africa","Revenue":12064818.0,"Budget":9889000.0,"VarPct":22.0},{"Year":2025,"Region":"North America","Revenue":70788136.0,"Budget":58589667.0,"VarPct":20.8}],"cf":[{"Year":2022,"Quarter":"Q1","OperatingCF":7173660.0,"InvestingCF":-3337365.0,"FinancingCF":-2255444.0,"NetCashFlow":1580851.0},{"Year":2022,"Quarter":"Q2","OperatingCF":6285803.0,"InvestingCF":-3169168.0,"FinancingCF":-2122726.0,"NetCashFlow":993909.0},{"Year":2022,"Quarter":"Q3","OperatingCF":7090937.0,"InvestingCF":-3341311.0,"FinancingCF":-2170471.0,"NetCashFlow":1579155.0},{"Year":2022,"Quarter":"Q4","OperatingCF":7882858.0,"InvestingCF":-3244717.0,"FinancingCF":-2172721.0,"NetCashFlow":2465420.0},{"Year":2023,"Quarter":"Q1","OperatingCF":8636343.0,"InvestingCF":-3316793.0,"FinancingCF":-2082458.0,"NetCashFlow":3237092.0},{"Year":2023,"Quarter":"Q2","OperatingCF":7235908.0,"InvestingCF":-3777888.0,"FinancingCF":-2178307.0,"NetCashFlow":1279713.0},{"Year":2023,"Quarter":"Q3","OperatingCF":9115661.0,"InvestingCF":-3898845.0,"FinancingCF":-2374711.0,"NetCashFlow":2842105.0},{"Year":2023,"Quarter":"Q4","OperatingCF":7643758.0,"InvestingCF":-3644175.0,"FinancingCF":-2224312.0,"NetCashFlow":1775271.0},{"Year":2024,"Quarter":"Q1","OperatingCF":10245128.0,"InvestingCF":-4662926.0,"FinancingCF":-2860080.0,"NetCashFlow":2722122.0},{"Year":2024,"Quarter":"Q2","OperatingCF":9977335.0,"InvestingCF":-5079024.0,"FinancingCF":-2616511.0,"NetCashFlow":2281800.0},{"Year":2024,"Quarter":"Q3","OperatingCF":10441177.0,"InvestingCF":-4789161.0,"FinancingCF":-2946384.0,"NetCashFlow":2705632.0},{"Year":2024,"Quarter":"Q4","OperatingCF":9313827.0,"InvestingCF":-4572235.0,"FinancingCF":-2696765.0,"NetCashFlow":2044827.0},{"Year":2025,"Quarter":"Q1","OperatingCF":12537529.0,"InvestingCF":-5395145.0,"FinancingCF":-3792293.0,"NetCashFlow":3350091.0},{"Year":2025,"Quarter":"Q2","OperatingCF":11131155.0,"InvestingCF":-4945997.0,"FinancingCF":-3455142.0,"NetCashFlow":2730016.0},{"Year":2025,"Quarter":"Q3","OperatingCF":9837758.0,"InvestingCF":-6055727.0,"FinancingCF":-3669800.0,"NetCashFlow":112231.0},{"Year":2025,"Quarter":"Q4","OperatingCF":11809282.0,"InvestingCF":-5577919.0,"FinancingCF":-3505086.0,"NetCashFlow":2726277.0}]};
+
+// -------- UTILS --------
+const fmt = v => v >= 1e9 ? '$' + (v/1e9).toFixed(1) + 'B' : v >= 1e6 ? '$' + (v/1e6).toFixed(1) + 'M' : v >= 1e3 ? '$' + (v/1e3).toFixed(0) + 'K' : '$' + v.toFixed(0);
+const pct = v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const COLORS = ['#4A9EFF','#3DDC84','#FFB547','#FF5C5C','#00D4B4','#B57AFF','#FF8C5A','#5AC8FA'];
+const REGION_COLORS = {'North America':'#4A9EFF','Europe':'#3DDC84','Asia Pacific':'#FFB547','Latin America':'#FF5C5C','Middle East & Africa':'#00D4B4'};
+const CAT_COLORS = {'Software':'#4A9EFF','Hardware':'#FFB547','Professional Services':'#3DDC84','Maintenance & Support':'#00D4B4','Cloud Solutions':'#B57AFF'};
+const DEPT_COLORS = {'Engineering':'#4A9EFF','Sales':'#3DDC84','Marketing':'#FFB547','R&D':'#B57AFF','Operations':'#FF8C5A','Finance':'#00D4B4','HR':'#FF5C5C'};
+
+let state = {year:'all', region:'all', cat:'all'};
+const charts = {};
+
+function mkChart(id, cfg) {
+  if(charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  charts[id] = new Chart(ctx, cfg);
+  return charts[id];
+}
+
+Chart.defaults.color = '#7A8BAA';
+Chart.defaults.borderColor = 'rgba(36,48,80,0.8)';
+Chart.defaults.font.family = 'system-ui, sans-serif';
+Chart.defaults.font.size = 11;
+
+// -------- FILTER HELPERS --------
+function getYears() { return state.year === 'all' ? [2022,2023,2024,2025] : [state.year]; }
+
+function filterKPI() {
+  const yrs = getYears();
+  return DATA.kpi.filter(r => yrs.includes(r.Year));
+}
+
+function filterRevYM() {
+  const yrs = getYears();
+  return DATA.rev_ym.filter(r => yrs.includes(r.Year));
+}
+
+function filterRevRegion() {
+  const yrs = getYears();
+  let rows = DATA.rev_region.filter(r => yrs.includes(r.Year));
+  if(state.region !== 'all') rows = rows.filter(r => r.Region === state.region);
+  return rows;
+}
+
+function filterRevCat() {
+  const yrs = getYears();
+  let rows = DATA.rev_cat.filter(r => yrs.includes(r.Year));
+  if(state.cat !== 'all') rows = rows.filter(r => r.Category === state.cat);
+  return rows;
+}
+
+function filterBVA() {
+  const yrs = getYears();
+  return DATA.bva_ym.filter(r => yrs.includes(r.Year));
+}
+
+function filterBVARegion() {
+  const yrs = getYears();
+  return DATA.bva_region.filter(r => yrs.includes(r.Year));
+}
+
+function sumField(arr, field) { return arr.reduce((s,r)=>s+(r[field]||0),0); }
+
+function groupSum(arr, keyField, valField) {
+  const m = {};
+  arr.forEach(r => { m[r[keyField]] = (m[r[keyField]]||0) + (r[valField]||0); });
+  return m;
+}
+
+// -------- NAVIGATION --------
+function showTab(name, el) {
+  document.querySelectorAll('.tab-page').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+  const titles = {exec:'Executive Summary',revenue:'Revenue Analysis',profit:'Profitability',expenses:'Expenses',cashflow:'Cash Flow',budget:'Budget vs Actual'};
+  document.getElementById('page-title').textContent = titles[name]||name;
+  renderTab(name);
+}
+
+function setYear(y, el) {
+  state.year = y;
+  document.querySelectorAll('.year-pill').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  state.region = document.getElementById('sel-region').value;
+  state.cat = document.getElementById('sel-cat').value;
+  const active = document.querySelector('.tab-page.active');
+  if(active) renderTab(active.id.replace('tab-',''));
+}
+
+function resetFilters() {
+  state = {year:'all', region:'all', cat:'all'};
+  document.querySelectorAll('.year-pill').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.year-pill').classList.add('active');
+  document.getElementById('sel-region').value = 'all';
+  document.getElementById('sel-cat').value = 'all';
+  applyFilters();
+}
+
+// -------- RENDER --------
+function renderTab(name) {
+  if(name==='exec') renderExec();
+  else if(name==='revenue') renderRevenue();
+  else if(name==='profit') renderProfit();
+  else if(name==='expenses') renderExpenses();
+  else if(name==='cashflow') renderCashflow();
+  else if(name==='budget') renderBudget();
+}
+
+// ===== EXEC =====
+function renderExec() {
+  const kpiData = filterKPI();
+  const rev = sumField(kpiData,'Revenue'), gp = sumField(kpiData,'GrossProfit');
+  const opex = sumField(kpiData,'OPEX'), ni = sumField(kpiData,'NetIncome');
+  const bud = sumField(kpiData,'Budget');
+  const gm = rev > 0 ? gp/rev*100 : 0;
+  const nm = rev > 0 ? ni/rev*100 : 0;
+  const bvar = bud > 0 ? (rev-bud)/bud*100 : 0;
+  
+  // YoY for badge
+  const yrs = getYears();
+  let yoyBadge = '';
+  if(state.year !== 'all' && state.year > 2022) {
+    const prev = DATA.kpi.find(r=>r.Year===state.year-1);
+    const cur = DATA.kpi.find(r=>r.Year===state.year);
+    if(prev && cur) { const g = (cur.Revenue-prev.Revenue)/prev.Revenue*100; yoyBadge = g; }
+  }
+
+  const el = document.getElementById('kpi-cards');
+  el.innerHTML = `
+    <div class="kpi-card" style="--accent-color:var(--blue)">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value">${fmt(rev)}</div>
+      <div class="kpi-sub">
+        ${yoyBadge !== '' ? `<span class="kpi-badge ${yoyBadge>=0?'badge-up':'badge-down'}">${pct(yoyBadge)} YoY</span>` : `<span class="kpi-badge badge-neutral">${yrs.length} Years</span>`}
+      </div>
+    </div>
+    <div class="kpi-card" style="--accent-color:var(--green)">
+      <div class="kpi-label">Gross Profit</div>
+      <div class="kpi-value">${fmt(gp)}</div>
+      <div class="kpi-sub"><span class="kpi-badge badge-neutral">${gm.toFixed(1)}% margin</span></div>
+    </div>
+    <div class="kpi-card" style="--accent-color:var(--teal)">
+      <div class="kpi-label">Net Income</div>
+      <div class="kpi-value" style="color:${ni>=0?'var(--green)':'var(--red)'}">${fmt(ni)}</div>
+      <div class="kpi-sub"><span class="kpi-badge ${ni>=0?'badge-up':'badge-down'}">${nm.toFixed(1)}% margin</span></div>
+    </div>
+    <div class="kpi-card" style="--accent-color:var(--amber)">
+      <div class="kpi-label">vs Budget</div>
+      <div class="kpi-value" style="color:${bvar>=0?'var(--green)':'var(--red)'}">${pct(bvar)}</div>
+      <div class="kpi-sub"><span class="kpi-badge ${bvar>=0?'badge-up':'badge-down'}">${bvar>=0?'Ahead of':'Behind'} plan</span></div>
+    </div>
+  `;
+
+  // Revenue trend
+  const revYM = filterRevYM();
+  const byYear = {};
+  revYM.forEach(r => { if(!byYear[r.Year]) byYear[r.Year]=new Array(12).fill(0); byYear[r.Year][r.Month-1]=r.Revenue; });
+  const trendDatasets = Object.entries(byYear).map(([yr,vals],i)=>({
+    label: yr, data: vals.map(v=>v/1e6),
+    borderColor: COLORS[i], backgroundColor: COLORS[i]+'22',
+    borderWidth: 2, pointRadius: 2, tension: 0.4, fill: false
+  }));
+  mkChart('c-rev-trend',{type:'line',data:{labels:MONTHS,datasets:trendDatasets},options:{plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Category donut
+  const catData = filterRevCat();
+  const catSum = groupSum(catData,'Category','Revenue');
+  const cats = Object.keys(catSum); const catVals = cats.map(c=>catSum[c]/1e6);
+  mkChart('c-cat-donut',{type:'doughnut',data:{labels:cats,datasets:[{data:catVals,backgroundColor:cats.map(c=>CAT_COLORS[c]||COLORS[0]),borderWidth:2,borderColor:'#1A2540'}]},options:{plugins:{legend:{position:'right',labels:{font:{size:10},padding:6}}},responsive:true,maintainAspectRatio:true,cutout:'65%'}});
+
+  // Region bar
+  const regData = filterRevRegion();
+  const regSum = groupSum(regData,'Region','Revenue');
+  const regs = Object.entries(regSum).sort((a,b)=>b[1]-a[1]);
+  mkChart('c-region-bar',{type:'bar',data:{labels:regs.map(r=>r[0]),datasets:[{label:'Revenue',data:regs.map(r=>r[1]/1e6),backgroundColor:regs.map(r=>REGION_COLORS[r[0]]||COLORS[0]),borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>'$'+v+'M'},grid:{color:'rgba(36,48,80,0.5)'}},y:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Rev vs Budget annual
+  const years = [2022,2023,2024,2025];
+  const revByYr = years.map(y => { const k = DATA.kpi.find(r=>r.Year===y); return k ? k.Revenue/1e6 : 0; });
+  const budByYr = years.map(y => { const k = DATA.kpi.find(r=>r.Year===y); return k ? k.Budget/1e6 : 0; });
+  mkChart('c-rev-bud',{type:'bar',data:{labels:years.map(String),datasets:[{label:'Actual',data:revByYr,backgroundColor:'#4A9EFF',borderRadius:4},{label:'Budget',data:budByYr,backgroundColor:'rgba(255,181,71,0.5)',borderColor:'#FFB547',borderWidth:1,borderRadius:4}]},options:{plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+}
+
+// ===== REVENUE =====
+function renderRevenue() {
+  const yrs = [2022,2023,2024,2025];
+  const regions = ['North America','Europe','Asia Pacific','Latin America','Middle East & Africa'];
+  const cats = ['Software','Hardware','Professional Services','Maintenance & Support','Cloud Solutions'];
+
+  // Revenue by region grouped by year
+  const regDatasets = yrs.map((yr,i)=>({
+    label:String(yr),
+    data:regions.map(rg=>{const r=DATA.rev_region.find(x=>x.Year===yr&&x.Region===rg); return r?r.Revenue/1e6:0;}),
+    backgroundColor:COLORS[i],borderRadius:3
+  }));
+  mkChart('c-rev-region-yr',{type:'bar',data:{labels:regions.map(r=>r.replace(' & ',' &\n')),datasets:regDatasets},options:{plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Revenue by category stacked
+  const catDatasets = yrs.map((yr,i)=>({
+    label:String(yr),
+    data:cats.map(c=>{const r=DATA.rev_cat.find(x=>x.Year===yr&&x.Category===c); return r?r.Revenue/1e6:0;}),
+    backgroundColor:COLORS[i],borderRadius:3,stack:'s'
+  }));
+  mkChart('c-rev-cat-yr',{type:'bar',data:{labels:cats.map(c=>c.length>16?c.substring(0,14)+'..':c),datasets:catDatasets},options:{plugins:{legend:{position:'top'}},scales:{y:{stacked:true,ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{stacked:true,grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Seasonal overlay
+  const seasonDatasets = yrs.map((yr,i)=>({
+    label:String(yr),data:MONTHS.map((_,mi)=>{const r=DATA.rev_ym.find(x=>x.Year===yr&&x.Month===mi+1);return r?r.Revenue/1e6:0;}),
+    borderColor:COLORS[i],backgroundColor:COLORS[i]+'22',borderWidth:2,pointRadius:1.5,tension:0.4,fill:false
+  }));
+  mkChart('c-rev-seasonal',{type:'line',data:{labels:MONTHS,datasets:seasonDatasets},options:{plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // YoY bars
+  const yoyData = yrs.slice(1).map(yr=>{
+    const cur=DATA.kpi.find(r=>r.Year===yr), prev=DATA.kpi.find(r=>r.Year===yr-1);
+    return cur&&prev?(cur.Revenue-prev.Revenue)/prev.Revenue*100:0;
+  });
+  mkChart('c-yoy',{type:'bar',data:{labels:['2023','2024','2025'],datasets:[{label:'YoY Growth %',data:yoyData,backgroundColor:yoyData.map(v=>v>=0?'rgba(61,220,132,0.7)':'rgba(255,92,92,0.7)'),borderRadius:4}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v.toFixed(1)+'%'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Table
+  const tbl = document.getElementById('t-rev-region');
+  let html = '<thead><tr><th>Region</th>';
+  yrs.forEach(y=>html+=`<th class="num">${y}</th>`);
+  html+='<th class="num">Total</th><th class="num">CAGR</th></tr></thead><tbody>';
+  regions.forEach(rg=>{
+    const vals = yrs.map(yr=>{ const r=DATA.rev_region.find(x=>x.Year===yr&&x.Region===rg); return r?r.Revenue:0; });
+    const total = vals.reduce((a,b)=>a+b,0);
+    const cagr = vals[0]>0 ? (Math.pow(vals[3]/vals[0],1/3)-1)*100 : 0;
+    html+=`<tr><td>${rg}</td>${vals.map(v=>`<td class="num">${fmt(v)}</td>`).join('')}<td class="num"><b>${fmt(total)}</b></td><td class="num ${cagr>=0?'pos':'neg'}">${cagr>=0?'+':''}${cagr.toFixed(1)}%</td></tr>`;
+  });
+  html+='</tbody>';
+  tbl.innerHTML = html;
+}
+
+// ===== PROFIT =====
+function renderProfit() {
+  const kpiData = DATA.kpi;
+  const yrs = [2022,2023,2024,2025];
+
+  // KPI cards
+  const last = kpiData[kpiData.length-1];
+  const prev = kpiData[kpiData.length-2];
+  const kpiEl = document.getElementById('profit-kpis');
+  const ebitda = last.GrossProfit - last.OPEX;
+  const gmPct = (last.GrossProfit/last.Revenue*100).toFixed(1);
+  const nmPct = (ebitda/last.Revenue*100).toFixed(1);
+  const opexPct = (last.OPEX/last.Revenue*100).toFixed(1);
+  const gpYoY = prev ? (last.GrossProfit-prev.GrossProfit)/prev.GrossProfit*100 : 0;
+  kpiEl.innerHTML=`
+    <div class="kpi-card" style="--accent-color:var(--green)"><div class="kpi-label">Gross Profit (2025)</div><div class="kpi-value">${fmt(last.GrossProfit)}</div><div class="kpi-sub"><span class="kpi-badge ${gpYoY>=0?'badge-up':'badge-down'}">${pct(gpYoY)} YoY</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--blue)"><div class="kpi-label">Gross Margin %</div><div class="kpi-value">${gmPct}%</div><div class="kpi-sub"><span class="kpi-badge badge-neutral">2025</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--teal)"><div class="kpi-label">Net Margin %</div><div class="kpi-value">${nmPct}%</div><div class="kpi-sub"><span class="kpi-badge badge-neutral">After OPEX</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--amber)"><div class="kpi-label">OPEX % of Revenue</div><div class="kpi-value">${opexPct}%</div><div class="kpi-sub"><span class="kpi-badge badge-neutral">2025</span></div></div>
+  `;
+
+  // Margin lines (using annual data)
+  const gmLine = yrs.map(yr=>{ const k=DATA.kpi.find(r=>r.Year===yr); return k?k.GrossMarginPct:0; });
+  const nmLine = yrs.map(yr=>{ const k=DATA.kpi.find(r=>r.Year===yr); return k?k.NetMarginPct:0; });
+  mkChart('c-margins',{type:'line',data:{labels:yrs.map(String),datasets:[
+    {label:'Gross Margin %',data:gmLine,borderColor:'#3DDC84',backgroundColor:'rgba(61,220,132,0.1)',borderWidth:2,pointRadius:5,tension:0.3,fill:true},
+    {label:'Net Margin %',data:nmLine,borderColor:'#4A9EFF',backgroundColor:'rgba(74,158,255,0.1)',borderWidth:2,pointRadius:5,tension:0.3,fill:true}
+  ]},options:{plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>v+'%'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Waterfall (for selected or all)
+  const kpiAgg = filterKPI();
+  const wfRev = sumField(kpiAgg,'Revenue'), wfCOGS = sumField(kpiAgg,'COGS'), wfGP = sumField(kpiAgg,'GrossProfit');
+  const wfOPEX = sumField(kpiAgg,'OPEX'), wfNI = wfGP - wfOPEX;
+  const wfMax = wfRev;
+  const el = document.getElementById('c-waterfall');
+  const toH = v => Math.max(4, Math.abs(v)/wfMax*120);
+  const lbls = ['Revenue','COGS','Gross Profit','OPEX','Net Income'];
+  const vals = [wfRev, -wfCOGS, wfGP, -wfOPEX, wfNI];
+  const colors = ['#4A9EFF','#FF5C5C','#3DDC84','#FFB547', wfNI>=0?'#00D4B4':'#FF5C5C'];
+  let wHTML = '<div style="display:flex;gap:8px;padding:12px 4px;height:220px;align-items:flex-end">';
+  vals.forEach((v,i)=>{
+    const h = toH(v);
+    wHTML+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="font-size:10px;font-weight:600;color:${colors[i]}">${fmt(Math.abs(v))}</div>
+      <div style="width:100%;height:${h}px;background:${colors[i]};border-radius:4px 4px 0 0;min-height:4px"></div>
+      <div style="font-size:10px;color:var(--muted);text-align:center;line-height:1.2">${lbls[i]}</div>
+    </div>`;
+  });
+  wHTML+='</div>';
+  el.innerHTML = wHTML;
+
+  // GP by category
+  const catData = filterRevCat();
+  const cats = ['Software','Hardware','Professional Services','Maintenance & Support','Cloud Solutions'];
+  const cogsRates = {'Software':0.18,'Hardware':0.52,'Professional Services':0.41,'Maintenance & Support':0.22,'Cloud Solutions':0.27};
+  const catSum = groupSum(catData,'Category','Revenue');
+  const gpVals = cats.map(c=>(catSum[c]||0)*(1-cogsRates[c]));
+  mkChart('c-gp-cat',{type:'bar',data:{labels:cats.map(c=>c.length>14?c.substring(0,12)+'..':c),datasets:[{label:'Gross Profit',data:gpVals.map(v=>v/1e6),backgroundColor:cats.map(c=>CAT_COLORS[c]),borderRadius:4}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // P&L table
+  const tbl = document.getElementById('t-pl');
+  let html='<thead><tr><th>Metric</th>';
+  yrs.forEach(y=>html+=`<th class="num">${y}</th>`);
+  html+='</tr></thead><tbody>';
+  const rows=[
+    ['Revenue', yrs.map(yr=>{ const k=DATA.kpi.find(r=>r.Year===yr); return k?k.Revenue:0; })],
+    ['Gross Profit', yrs.map(yr=>{ const k=DATA.kpi.find(r=>r.Year===yr); return k?k.GrossProfit:0; })],
+    ['Gross Margin', yrs.map(yr=>{ const k=DATA.kpi.find(r=>r.Year===yr); return k?k.GrossMarginPct+'%':''; }), true],
+    ['OPEX', yrs.map(yr=>{ const k=DATA.kpi.find(r=>r.Year===yr); return k?k.OPEX:0; })],
+    ['Net Income', yrs.map(yr=>{ const k=DATA.kpi.find(r=>r.Year===yr); return k?k.NetIncome:0; })],
+    ['Net Margin', yrs.map(yr=>{ const k=DATA.kpi.find(r=>r.Year===yr); return k?k.NetMarginPct+'%':''; }), true],
+  ];
+  rows.forEach(([label, vals, isPct])=>{
+    html+=`<tr><td><b>${label}</b></td>${vals.map(v=>isPct?`<td class="num">${v}</td>`:`<td class="num">${fmt(v)}</td>`).join('')}</tr>`;
+  });
+  html+='</tbody>';
+  tbl.innerHTML=html;
+}
+
+// ===== EXPENSES =====
+function renderExpenses() {
+  const yrs = getYears();
+  const opexKpi = DATA.kpi.filter(r=>yrs.includes(r.Year));
+  const totalOpex = sumField(opexKpi,'OPEX');
+  const totalRev = sumField(opexKpi,'Revenue');
+  const opexPct = totalRev > 0 ? totalOpex/totalRev*100 : 0;
+
+  // Compare to prior year
+  const last2025 = DATA.kpi.find(r=>r.Year===2025);
+  const last2024 = DATA.kpi.find(r=>r.Year===2024);
+  const opexYoY = last2024 ? (last2025.OPEX-last2024.OPEX)/last2024.OPEX*100 : 0;
+  const engOpex = DATA.opex_dept.filter(r=>r.Year===2025&&r.Department==='Engineering').reduce((s,r)=>s+r.Amount,0);
+  const rdOpex = DATA.opex_dept.filter(r=>r.Year===2025&&r.Department==='R&D').reduce((s,r)=>s+r.Amount,0);
+
+  document.getElementById('opex-kpis').innerHTML=`
+    <div class="kpi-card" style="--accent-color:var(--amber)"><div class="kpi-label">Total OPEX</div><div class="kpi-value">${fmt(totalOpex)}</div><div class="kpi-sub"><span class="kpi-badge badge-neutral">${yrs.length}yr total</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--red)"><div class="kpi-label">OPEX % of Revenue</div><div class="kpi-value">${opexPct.toFixed(1)}%</div><div class="kpi-sub"><span class="kpi-badge ${opexPct<40?'badge-up':'badge-down'}">Efficiency</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--blue)"><div class="kpi-label">Engineering (2025)</div><div class="kpi-value">${fmt(engOpex)}</div><div class="kpi-sub"><span class="kpi-badge badge-neutral">Largest dept</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--purple)"><div class="kpi-label">OPEX YoY (2025)</div><div class="kpi-value" style="color:var(--red)">${pct(opexYoY)}</div><div class="kpi-sub"><span class="kpi-badge badge-down">vs 2024</span></div></div>
+  `;
+
+  const depts = ['Engineering','Sales','Marketing','R&D','Operations','Finance','HR'];
+  const allYrs = [2022,2023,2024,2025];
+
+  // OPEX by dept grouped bar
+  const deptDatasets = allYrs.map((yr,i)=>({
+    label:String(yr),
+    data:depts.map(dp=>{ const r=DATA.opex_dept.find(x=>x.Year===yr&&x.Department===dp); return r?r.Amount/1e6:0; }),
+    backgroundColor:COLORS[i],borderRadius:3
+  }));
+  mkChart('c-opex-dept',{type:'bar',data:{labels:depts,datasets:deptDatasets},options:{plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // OPEX by expense type stacked
+  const etypes = ['Salaries & Benefits','Software & Licenses','Marketing Programs','Facilities','Professional Fees','Depreciation','Travel & Entertainment','Other'];
+  const etypeDatasets = allYrs.map((yr,i)=>({
+    label:String(yr),
+    data:etypes.map(et=>{ const r=DATA.opex_etype.find(x=>x.Year===yr&&x.ExpenseType===et); return r?r.Amount/1e6:0; }),
+    backgroundColor:COLORS[i],borderRadius:3,stack:'s'
+  }));
+  mkChart('c-opex-etype',{type:'bar',data:{labels:etypes.map(e=>e.length>15?e.substring(0,13)+'..':e),datasets:etypeDatasets},options:{plugins:{legend:{position:'top'}},scales:{y:{stacked:true,ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{stacked:true,grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // OPEX trend lines
+  const trendDatasets2 = depts.map((dp,i)=>({
+    label:dp,
+    data:allYrs.map(yr=>{ const r=DATA.opex_dept.find(x=>x.Year===yr&&x.Department===dp); return r?r.Amount/1e6:0; }),
+    borderColor:DEPT_COLORS[dp],backgroundColor:DEPT_COLORS[dp]+'22',
+    borderWidth:2,pointRadius:3,tension:0.3,fill:false
+  }));
+  mkChart('c-opex-trend',{type:'line',data:{labels:allYrs.map(String),datasets:trendDatasets2},options:{plugins:{legend:{position:'right',labels:{font:{size:10}}}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Expense type donut for latest year
+  const yr2025 = DATA.opex_etype.filter(r=>r.Year===2025);
+  mkChart('c-opex-donut',{type:'doughnut',data:{labels:yr2025.map(r=>r.ExpenseType),datasets:[{data:yr2025.map(r=>r.Amount/1e6),backgroundColor:COLORS,borderWidth:2,borderColor:'#1A2540'}]},options:{plugins:{legend:{position:'right',labels:{font:{size:9},padding:5}}},responsive:true,maintainAspectRatio:true,cutout:'60%'}});
+
+  // OPEX dept table
+  const tbl=document.getElementById('t-opex');
+  let html='<thead><tr><th>Department</th>';
+  allYrs.forEach(y=>html+=`<th class="num">${y}</th>`);
+  html+='<th class="num">Total</th><th class="num">YoY (2025)</th></tr></thead><tbody>';
+  depts.forEach(dp=>{
+    const vals=allYrs.map(yr=>{ const r=DATA.opex_dept.find(x=>x.Year===yr&&x.Department===dp); return r?r.Amount:0; });
+    const total=vals.reduce((a,b)=>a+b,0);
+    const yoy=vals[2]>0?(vals[3]-vals[2])/vals[2]*100:0;
+    html+=`<tr><td>${dp}</td>${vals.map(v=>`<td class="num">${fmt(v)}</td>`).join('')}<td class="num"><b>${fmt(total)}</b></td><td class="num ${yoy>=0?'neg':'pos'}">${pct(yoy)}</td></tr>`;
+  });
+  html+='</tbody>';
+  tbl.innerHTML=html;
+}
+
+// ===== CASH FLOW =====
+function renderCashflow() {
+  const cf = DATA.cf;
+  const yrs = getYears();
+  const cfFiltered = cf.filter(r=>yrs.includes(r.Year));
+  
+  const totalOp = sumField(cfFiltered,'OperatingCF');
+  const totalInv = sumField(cfFiltered,'InvestingCF');
+  const totalFin = sumField(cfFiltered,'FinancingCF');
+  const totalNet = sumField(cfFiltered,'NetCashFlow');
+  const fcf = totalOp + totalInv;
+
+  document.getElementById('cf-kpis').innerHTML=`
+    <div class="kpi-card" style="--accent-color:var(--green)"><div class="kpi-label">Operating CF</div><div class="kpi-value">${fmt(totalOp)}</div><div class="kpi-sub"><span class="kpi-badge badge-up">Core ops</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--red)"><div class="kpi-label">Investing CF</div><div class="kpi-value" style="color:var(--red)">${fmt(totalInv)}</div><div class="kpi-sub"><span class="kpi-badge badge-down">CapEx spend</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--amber)"><div class="kpi-label">Financing CF</div><div class="kpi-value" style="color:var(--red)">${fmt(totalFin)}</div><div class="kpi-sub"><span class="kpi-badge badge-down">Debt/equity</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--teal)"><div class="kpi-label">Free Cash Flow</div><div class="kpi-value" style="color:${fcf>=0?'var(--green)':'var(--red)'}">${fmt(fcf)}</div><div class="kpi-sub"><span class="kpi-badge ${fcf>=0?'badge-up':'badge-down'}">Op + Inv</span></div></div>
+  `;
+
+  // Quarterly bar
+  const periods = cf.map(r=>r.Year+' '+r.Quarter);
+  mkChart('c-cf-bar',{type:'bar',data:{labels:periods,datasets:[
+    {label:'Operating',data:cf.map(r=>r.OperatingCF/1e6),backgroundColor:'rgba(61,220,132,0.7)',borderRadius:3,stack:'s'},
+    {label:'Investing',data:cf.map(r=>r.InvestingCF/1e6),backgroundColor:'rgba(255,92,92,0.5)',borderRadius:3,stack:'s'},
+    {label:'Financing',data:cf.map(r=>r.FinancingCF/1e6),backgroundColor:'rgba(255,181,71,0.5)',borderRadius:3,stack:'s'},
+  ]},options:{plugins:{legend:{position:'top'}},scales:{y:{stacked:true,ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}});
+
+  // Net CF line
+  mkChart('c-cf-net',{type:'line',data:{labels:periods,datasets:[{label:'Net Cash Flow',data:cf.map(r=>r.NetCashFlow/1e6),borderColor:'#00D4B4',backgroundColor:'rgba(0,212,180,0.1)',borderWidth:2,pointRadius:3,tension:0.3,fill:true}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false},ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}});
+
+  // Annual bars
+  const allYrs=[2022,2023,2024,2025];
+  const annualOp=allYrs.map(yr=>cf.filter(r=>r.Year===yr).reduce((s,r)=>s+r.OperatingCF,0)/1e6);
+  const annualInv=allYrs.map(yr=>cf.filter(r=>r.Year===yr).reduce((s,r)=>s+r.InvestingCF,0)/1e6);
+  const annualFin=allYrs.map(yr=>cf.filter(r=>r.Year===yr).reduce((s,r)=>s+r.FinancingCF,0)/1e6);
+  mkChart('c-cf-annual',{type:'bar',data:{labels:allYrs.map(String),datasets:[
+    {label:'Operating',data:annualOp,backgroundColor:'rgba(61,220,132,0.7)',borderRadius:4,stack:'s'},
+    {label:'Investing',data:annualInv,backgroundColor:'rgba(255,92,92,0.5)',borderRadius:4,stack:'s'},
+    {label:'Financing',data:annualFin,backgroundColor:'rgba(255,181,71,0.5)',borderRadius:4,stack:'s'},
+  ]},options:{plugins:{legend:{position:'top'}},scales:{y:{stacked:true,ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{stacked:true,grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // FCF bar
+  const fcfVals=allYrs.map(yr=>cf.filter(r=>r.Year===yr).reduce((s,r)=>s+r.OperatingCF+r.InvestingCF,0)/1e6);
+  mkChart('c-fcf',{type:'bar',data:{labels:allYrs.map(String),datasets:[{label:'Free Cash Flow',data:fcfVals,backgroundColor:fcfVals.map(v=>v>=0?'rgba(0,212,180,0.7)':'rgba(255,92,92,0.7)'),borderRadius:4}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Table
+  const tbl=document.getElementById('t-cf');
+  let html='<thead><tr><th>Year</th><th>Quarter</th><th class="num">Operating CF</th><th class="num">Investing CF</th><th class="num">Financing CF</th><th class="num">Net Cash Flow</th><th class="num">Free CF</th></tr></thead><tbody>';
+  cf.forEach(r=>{
+    const fcfVal=r.OperatingCF+r.InvestingCF;
+    html+=`<tr><td>${r.Year}</td><td>${r.Quarter}</td><td class="num pos">${fmt(r.OperatingCF)}</td><td class="num neg">${fmt(r.InvestingCF)}</td><td class="num neg">${fmt(r.FinancingCF)}</td><td class="num ${r.NetCashFlow>=0?'pos':'neg'}">${fmt(r.NetCashFlow)}</td><td class="num ${fcfVal>=0?'pos':'neg'}">${fmt(fcfVal)}</td></tr>`;
+  });
+  html+='</tbody>';
+  tbl.innerHTML=html;
+}
+
+// ===== BUDGET =====
+function renderBudget() {
+  const yrs = getYears();
+  const bvaData = filterBVA();
+  const totalRev = sumField(bvaData,'Revenue');
+  const totalBud = sumField(bvaData,'Budget');
+  const totalVar = totalRev - totalBud;
+  const varPct = totalBud > 0 ? totalVar/totalBud*100 : 0;
+  const attainment = totalBud > 0 ? totalRev/totalBud*100 : 0;
+
+  document.getElementById('bva-kpis').innerHTML=`
+    <div class="kpi-card" style="--accent-color:var(--blue)"><div class="kpi-label">Actual Revenue</div><div class="kpi-value">${fmt(totalRev)}</div><div class="kpi-sub"><span class="kpi-badge badge-neutral">Selected period</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--amber)"><div class="kpi-label">Budget Revenue</div><div class="kpi-value">${fmt(totalBud)}</div><div class="kpi-sub"><span class="kpi-badge badge-neutral">Plan</span></div></div>
+    <div class="kpi-card" style="--accent-color:${varPct>=0?'var(--green)':'var(--red)'}"><div class="kpi-label">Variance</div><div class="kpi-value" style="color:${varPct>=0?'var(--green)':'var(--red)'}">${fmt(Math.abs(totalVar))}</div><div class="kpi-sub"><span class="kpi-badge ${varPct>=0?'badge-up':'badge-down'}">${varPct>=0?'Above':'Below'} budget</span></div></div>
+    <div class="kpi-card" style="--accent-color:var(--teal)"><div class="kpi-label">Budget Attainment</div><div class="kpi-value">${attainment.toFixed(1)}%</div><div class="kpi-sub"><span class="kpi-badge ${attainment>=100?'badge-up':'badge-down'}">${attainment>=100?'Beat':'Missed'}</span></div></div>
+  `;
+
+  // Monthly actual vs budget (pick one year or aggregate)
+  const yr = state.year !== 'all' ? state.year : 2025;
+  const monthData = DATA.bva_ym.filter(r=>r.Year===yr);
+  mkChart('c-bva-monthly',{type:'bar',data:{labels:MONTHS,datasets:[
+    {label:'Actual',data:monthData.map(r=>r.Revenue/1e6),backgroundColor:'#4A9EFF',borderRadius:4},
+    {label:'Budget',data:monthData.map(r=>r.Budget/1e6),backgroundColor:'rgba(255,181,71,0.5)',borderColor:'#FFB547',borderWidth:1,borderRadius:4}
+  ]},options:{plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'rgba(36,48,80,0.5)'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Budget variance by region
+  const bvaReg = filterBVARegion();
+  const regGroups = {};
+  bvaReg.forEach(r=>{ if(!regGroups[r.Region]) regGroups[r.Region]={rev:0,bud:0}; regGroups[r.Region].rev+=r.Revenue; regGroups[r.Region].bud+=r.Budget; });
+  const regNames = Object.keys(regGroups);
+  const regVarPcts = regNames.map(rg=>regGroups[rg].bud>0?(regGroups[rg].rev-regGroups[rg].bud)/regGroups[rg].bud*100:0);
+  mkChart('c-bva-region',{type:'bar',data:{labels:regNames,datasets:[{label:'Variance %',data:regVarPcts,backgroundColor:regVarPcts.map(v=>v>=0?'rgba(61,220,132,0.7)':'rgba(255,92,92,0.7)'),borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>v.toFixed(1)+'%'},grid:{color:'rgba(36,48,80,0.5)'}},y:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
+
+  // Heatmap — regions × months for year=2025 or selected
+  const hmYr = state.year !== 'all' ? state.year : 2025;
+  const hmData = DATA.bva_ym.filter(r=>r.Year===hmYr);
+  const regions = ['North America','Europe','Asia Pacific','Latin America','Middle East & Africa'];
+  // Get region-level monthly budget vs actual
+  const revRM = {};
+  const budRM = {};
+  const hmSales = DATA.rev_region.filter(r=>r.Year===hmYr);
+  // We approximate by allocating monthly totals proportionally
+  const totalRevYr = hmData.reduce((s,r)=>s+r.Revenue,0);
+  const heatTable = document.getElementById('t-heatmap');
+  let hh='<thead><tr><th>Region</th>'+MONTHS.map(m=>`<th>${m}</th>`).join('')+'</tr></thead><tbody>';
+  regions.forEach(rg=>{
+    const regRevTotal = hmSales.find(r=>r.Region===rg);
+    const regShare = regRevTotal && totalRevYr > 0 ? regRevTotal.Revenue / totalRevYr : 0.2;
+    hh+=`<tr><td>${rg.replace(' & Africa','')}</td>`;
+    hmData.forEach(r=>{
+      const actEst = r.Revenue * regShare;
+      const budEst = r.Budget * regShare;
+      const vp = budEst > 0 ? (actEst-budEst)/budEst*100 : 0;
+      const clamp = Math.min(Math.max(vp,-20),20);
+      const g = clamp >= 0 ? Math.round(clamp/20*180) : 0;
+      const re = clamp < 0 ? Math.round(Math.abs(clamp)/20*180) : 0;
+      hh+=`<td style="background:rgba(${re},${g},80,0.35);color:${vp>=0?'#3DDC84':'#FF5C5C'}">${vp>=0?'+':''}${vp.toFixed(1)}%</td>`;
+    });
+    hh+='</tr>';
+  });
+  hh+='</tbody>';
+  heatTable.innerHTML=hh;
+
+  // Summary table
+  const tbl=document.getElementById('t-bva');
+  let thtml='<thead><tr><th>Year</th><th>Month</th><th class="num">Actual</th><th class="num">Budget</th><th class="num">Variance $</th><th class="num">Variance %</th></tr></thead><tbody>';
+  DATA.bva_ym.filter(r=>r.Year===hmYr).forEach(r=>{
+    thtml+=`<tr><td>${r.Year}</td><td>${MONTHS[r.Month-1]}</td><td class="num">${fmt(r.Revenue)}</td><td class="num">${fmt(r.Budget)}</td><td class="num ${r.Revenue>=r.Budget?'pos':'neg'}">${fmt(Math.abs(r.Revenue-r.Budget))}</td><td class="num ${r.VarPct>=0?'pos':'neg'}">${r.VarPct>=0?'+':''}${r.VarPct}%</td></tr>`;
+  });
+  thtml+='</tbody>';
+  tbl.innerHTML=thtml;
+}
+
+// -------- INIT --------
+window.addEventListener('load', () => {
+  renderExec();
+});
+</script>
+</body>
+</html>
